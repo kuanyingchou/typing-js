@@ -12,6 +12,7 @@ words = split(article);
 //alert(words.join(" "));
 
 var lineHeight = 16;
+var heightFactor = 1.3;
 context.font = "20px monospace";
 var metrics = context.measureText('_');
 
@@ -74,14 +75,16 @@ function render(delta) {
 
         for(var j = 0; j<w.length; j++) {
             var cc = w[j];
-            context.clearRect(cx, cy-lineHeight, charWidth, lineHeight);
+            context.clearRect(cx, cy-lineHeight, 
+                    charWidth, Math.round(lineHeight*heightFactor));
             if(cc.typed) {
                 context.fillStyle = "#000000";
             } else {
                 if(w.active && j == charIndex) {
                     context.beginPath();
                     context.fillStyle = "#000000";
-                    context.rect(cx, cy-lineHeight, charWidth, lineHeight);
+                    context.rect(cx, cy-lineHeight, 
+                            charWidth, Math.round(lineHeight*heightFactor));
                     context.fill();
                     context.closePath();
                     context.fillStyle = "#FFFFFF";
