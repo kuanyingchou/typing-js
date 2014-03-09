@@ -1,3 +1,4 @@
+var carriageReturnSymbol = "\u21A9";
 var canvas = document.getElementById("typingCanvas");
 var context = canvas.getContext("2d");
 var width = canvas.width;
@@ -10,6 +11,110 @@ var article = "Leadership is solving problems. The day soldiers stop bringing yo
 words = split(article);
 //alert(words.join(" "));
 
+var lineHeight = 16;
+context.font = "20px monospace";
+var metrics = context.measureText('_');
+
+var shrink = 1;
+var charWidth = metrics.width * shrink;
+var lineDistance = lineHeight * .5;
+var padding = {
+    north: 24,
+    west: 4,
+    east: 4,
+    south: 24
+}
+
+function start() {
+    var bufferCanvas = document.createElement('canvas');
+    bufferCanvas.width = width;
+    bufferCanvas.height = height;
+    var bufferContext = bufferCanvas.getContext("2d");
+    var width = bufferCanvas.width;
+    var height = bufferCanvas.height;
+    adjustForRetina(bufferCanvas, context, width, height);
+
+}
+
+function render(delta) {
+    //context.clearRect(0, 0, width, height);
+    var line = 0;
+    var cx = padding.west
+    var cy;
+    for(var i = 0; i<words.length; i++) {
+        var w = words[i];
+        var wordWidth = charWidth * w.length;
+        //console.log(w.active?w.join(""):"");
+        renderWord(w);
+
+    }
+
+    function renderWord(w) {
+        //[ whitespaces should not start a new line
+        if((!w.join("").match(/\s/)) && 
+                (cx + wordWidth > width - padding.east)) { 
+            newLine();
+        }
+        cy = padding.north + (lineHeight+lineDistance) * line;
+
+/*
+        if(w.active) {
+            context.strokeStyle = "#FF0000";
+            //context.moveTo(cx, cy);
+            //context.lineTo(cx+wordWidth, cy);
+            context.rect(cx, cy-lineHeight, wordWidth, lineHeight);
+            context.stroke();
+        } else {
+            context.clearRect(cx, cy-lineHeight, wordWidth, lineHeight);
+            //context.strokeStyle = "#CCCCCC";
+            //context.rect(cx, cy-lineHeight, wordWidth, lineHeight);
+            //context.stroke();
+        }
+*/
+
+        for(var j = 0; j<w.length; j++) {
+            var cc = w[j];
+            context.clearRect(cx, cy-lineHeight, charWidth, lineHeight);
+            if(cc.typed) {
+                context.fillStyle = "#000000";
+            } else {
+                if(w.active && j == charIndex) {
+                    context.beginPath();
+                    context.fillStyle = "#000000";
+                    context.rect(cx, cy-lineHeight, charWidth, lineHeight);
+                    context.fill();
+                    context.closePath();
+                    context.fillStyle = "#FFFFFF";
+                } else {
+                    context.fillStyle = "#999999";
+                }
+            }
+            if(cc.value == "\n") {
+                context.fillText(carriageReturnSymbol, cx, cy);
+                newLine();
+            } else {
+                context.beginPath();
+                context.fillText(cc.value, cx, cy);
+                context.closePath();
+                cx += charWidth;
+            }
+            //console.log(cc.value+" - "+cc["typed"]);
+        }
+    }
+    function newLine() {
+        cx = padding.west;
+        line++;
+    }
+    function drawCross(x, y, w, h) {
+        context.moveTo(x, cy-h);
+        context.lineTo(x+w, cy);
+        context.moveTo(x+w, cy-h);
+        context.lineTo(cx, cy);
+        context.stroke();
+    }
+
+}
+
 function split(article) {
     var words = [];
     var State = {
@@ -18,11 +123,6 @@ function split(article) {
     };
     var state = State.WHITESPACE;
     var chars = [];
-
-    function flush() {
-        words.push(chars.join(""));
-        chars.length = 0;
-    }
 
     for(var i = 0; i < article.length; i++) {
         var c = article.charAt(i);
@@ -44,59 +144,25 @@ function split(article) {
     }
     if(chars.length > 0) flush();
     return words;
-}
 
-var lineHeight = 16;
-context.font = "20px monospace";
-var metrics = context.measureText('_');
-
-var shrink = 1;
-var charWidth = metrics.width * shrink;
-var lineDistance = lineHeight * .5;
-var padding = {
-    north: 24,
-    west: 4,
-    east: 4,
-    south: 24
-}
-var line = 0;
-var cx = padding.west
-var cy;
-
-context.fillStyle = "#000000";
-
-function newLine() {
-    cx = padding.west;
-    line++;
-}
-
-for(var i = 0; i<words.length; i++) {
-    var w = words[i];
-    var wordWidth = charWidth * w.length;
-
-    //[ whitespaces should not start a new line
-    if((!w.match(/\s/)) && (cx + wordWidth > width - padding.east)) { 
-        newLine();
+    function flush() {
+        if(chars.length > 0) {
+            var word = [];
+            for(var i = 0; i<chars.length; i++) {
+                word[i] = {
+                    value: chars[i],
+                    typed: false,
+                    toString: function() { return this.value; }
+                };
+            }
+            word["active"] = false;
+            words.push(word);
+            chars.length = 0;
+        }
     }
-    cy = padding.north + (lineHeight+lineDistance) * line;
-    context.strokeStyle = "#CCCCCC";
-    context.rect(cx, cy-lineHeight, wordWidth, lineHeight);
-    context.stroke();
-    if(w == "\n") {
-        context.fillText("\u21A9", cx, cy);
-        /*
-        context.moveTo(cx, cy-lineHeight);
-        context.lineTo(cx+wordWidth, cy);
-        context.moveTo(cx+wordWidth, cy-lineHeight);
-        context.lineTo(cx, cy);
-        context.stroke();
-        */
-        newLine();
-    } else {
-        context.fillText(words[i], cx, cy);
-        cx += wordWidth;
-    }
+
 }
+
 
 //[ from https://gist.github.com/joubertnel/870190
 function adjustForRetina(canvas, context, width, height) {
@@ -112,3 +178,52 @@ function adjustForRetina(canvas, context, width, height) {
 function wordCount(string) {
     return string.split(/\s/).length;
 }
+
+
+function update(delta) {
+    //console.log(delta);
+}
+
+render(0);
+var wordIndex = 0;
+var charIndex = 0;
+var current;
+var last = new Date;
+words[wordIndex].active = true;
+
+function handleKey(e) {
+    //alert(String.fromCharCode(e.keyCode));
+    var currentWord = words[wordIndex];
+    var currentChar = currentWord[charIndex];
+    console.log(e.keyCode);
+    var char;
+    if(e.keyCode == 13) { //enter
+        char = "\n";
+    } else {
+        char = String.fromCharCode(e.keyCode);
+    }
+    //console.log("got '"+char+"' - '"+currentChar+"'");
+    if(currentChar == char) {
+        currentWord[charIndex].typed = true
+        if(charIndex < currentWord.length - 1) {
+            charIndex++;
+        } else if(wordIndex < words.length - 1) {
+            words[wordIndex].active = false;
+            wordIndex++;
+            charIndex = 0;
+            words[wordIndex].active = true;
+        } else{
+            //done
+        }
+    }
+    //console.log(wordIndex + " - "+charIndex);
+    
+    current = new Date;
+    var delta = current - last;
+    update(delta);
+    render(delta);
+    last = current;
+}
+
+window.addEventListener('keypress', handleKey, false);
+
