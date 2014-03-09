@@ -1,3 +1,6 @@
+var article = "Leadership is solving problems. The day soldiers stop bringing you their problems is the day you have stopped leading them. They have either lost confidence that you can help or concluded you do not care. Either case is a failure of leadership.\n\nI don't believe you have to be better than everybody else. I believe you have to be better than you ever thought you could be."
+//var article = "Leadership is solving problems."
+
 var carriageReturnSymbol = "\u21A9";
 var canvas = document.getElementById("typingCanvas");
 var context = canvas.getContext("2d");
@@ -6,10 +9,6 @@ var height = canvas.height;
 
 adjustForRetina(canvas, context, width, height);
 
-//var article = "Leadership is solving problems. The day soldiers stop bringing you their problems is the day you have stopped leading them. They have either lost confidence that you can help or concluded you do not care. Either case is a failure of leadership.\n\nI don't believe you have to be better than everybody else. I believe you have to be better than you ever thought you could be."
-var article = "Leadership is solving problems."
-
-words = parse(article);
 //alert(words.join(" "));
 
 var lineHeight = 16;
@@ -33,21 +32,36 @@ var Color = {
     blue: "#0000FF",
     yellow: "#FFFF00",
     black: "#000000",
-    white: "#FFFFFF"
+    white: "#FFFFFF",
+    orange: "FFBF00"
 };
+var targetWPM = 70;
+var wordLength = 5;
+var targetCPM = targetWPM * wordLength;
 
-function start() {
-    var bufferCanvas = document.createElement('canvas');
-    bufferCanvas.width = width;
-    bufferCanvas.height = height;
-    var bufferContext = bufferCanvas.getContext("2d");
-    var width = bufferCanvas.width;
-    var height = bufferCanvas.height;
-    adjustForRetina(bufferCanvas, context, width, height);
-
+function init(article) {
+    window.words = parse(article);
+    window.wordIndex = 0;
+    window.charIndex = 0;
+    window.current;
+    window.last = new Date;
+    window.start = null;
+    window.words[wordIndex].active = true;
+    context.clearRect(0, 0, width, height);
+    render(0);
 }
 
-function render(delta) {
+//function init() {
+//    var bufferCanvas = document.createElement('canvas');
+//    bufferCanvas.width = width;
+//    bufferCanvas.height = height;
+//    var bufferContext = bufferCanvas.getContext("2d");
+//    var width = bufferCanvas.width;
+//    var height = bufferCanvas.height;
+//    adjustForRetina(bufferCanvas, context, width, height);
+//}
+
+function render() {
     //context.clearRect(0, 0, width, height);
     var line = 0;
     var cx = padding.west
@@ -83,12 +97,17 @@ function render(delta) {
         }
 */
 
+        var timeLimit = w.length * (60 * 1000) / targetCPM;
         for(var j = 0; j<w.length; j++) {
             var cc = w[j];
             context.clearRect(cx, cy-lineHeight, 
                     charWidth, Math.round(lineHeight*heightFactor));
             if(cc.typed) {
-                context.fillStyle = Color.black;
+                if(w.timeSpent >  timeLimit) {
+                    context.fillStyle = Color.orange;
+                } else {
+                    context.fillStyle = Color.black;
+                }
             } else {
                 if(w.active && j == charIndex) {
                     drawCursor();
@@ -101,9 +120,7 @@ function render(delta) {
                 context.fillText(carriageReturnSymbol, cx, cy);
                 newLine();
             } else {
-                context.beginPath();
                 context.fillText(cc.value, cx, cy);
-                context.closePath();
                 cx += charWidth;
             }
             //console.log(cc.value+" - "+cc["typed"]);
@@ -168,11 +185,11 @@ function parse(article) {
                 word[i] = {
                     value: chars[i],
                     typed: false,
-                    timeSpent: 0,
                     toString: function() { return this.value; }
                 };
             }
             word["active"] = false;
+            word["timeSpent"] = 0;
             words.push(word);
             chars.length = 0;
         }
@@ -195,17 +212,6 @@ function adjustForRetina(canvas, context, width, height) {
 function wordCount(string) {
     return string.split(/\s/).length;
 }
-
-
-function update(delta) {
-    //console.log(delta);
-}
-
-var wordIndex = 0;
-var charIndex = 0;
-var current;
-var last = new Date;
-var start = null;
 
 function handleKey(e) {
     if(!start) {
@@ -247,14 +253,15 @@ function handleKey(e) {
     }
     //console.log(wordIndex + " - "+charIndex);
     
-    current = new Date;
-    var delta = current - last;
-    update(delta);
-    render(delta);
-    last = current;
+    render();
+}
+
+document.body.onpaste = function(e) {
+    //alert(e.clipboardData.getData("Text"));
+    init(e.clipboardData.getData("Text"));
+    e.preventDefault();
 }
 
 window.addEventListener('keypress', handleKey, false);
 
-words[wordIndex].active = true;
-render(0);
+init(article);
