@@ -219,6 +219,7 @@ function parse(article) {
 
     for(var i = 0; i < article.length; i++) {
         var c = article.charAt(i);
+        c = filter(c);
         if(state == State.CHAR) {
             if(c.match(/\s/)) {
                 flush();
@@ -237,6 +238,11 @@ function parse(article) {
     }
     if(chars.length > 0) flush();
     return words;
+
+    function filter(c) {
+        if(c == "’") { return "'"; }
+        else return c;
+    }
 
     function flush() {
         if(chars.length > 0) {
@@ -277,7 +283,7 @@ function handleKey(e) {
     if(!start) {
         start = new Date();
     }
-    //alert(String.fromCharCode(e.keyCode));
+    console.log(String.fromCharCode(e.keyCode));
     var currentWord = words[wordIndex];
     var currentChar = currentWord[charIndex];
     //console.log(e.keyCode);
