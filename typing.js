@@ -6,9 +6,10 @@ var height = canvas.height;
 
 adjustForRetina(canvas, context, width, height);
 
-var article = "Leadership is solving problems. The day soldiers stop bringing you their problems is the day you have stopped leading them. They have either lost confidence that you can help or concluded you do not care. Either case is a failure of leadership.\n\nI don't believe you have to be better than everybody else. I believe you have to be better than you ever thought you could be."
+//var article = "Leadership is solving problems. The day soldiers stop bringing you their problems is the day you have stopped leading them. They have either lost confidence that you can help or concluded you do not care. Either case is a failure of leadership.\n\nI don't believe you have to be better than everybody else. I believe you have to be better than you ever thought you could be."
+var article = "Leadership is solving problems."
 
-words = split(article);
+words = parse(article);
 //alert(words.join(" "));
 
 var lineHeight = 16;
@@ -25,6 +26,15 @@ var padding = {
     east: 4,
     south: 24
 }
+var done = false;
+var Color = {
+    red: "#FF0000",
+    green: "#00FF00",
+    blue: "#0000FF",
+    yellow: "#FFFF00",
+    black: "#000000",
+    white: "#FFFFFF"
+};
 
 function start() {
     var bufferCanvas = document.createElement('canvas');
@@ -78,16 +88,11 @@ function render(delta) {
             context.clearRect(cx, cy-lineHeight, 
                     charWidth, Math.round(lineHeight*heightFactor));
             if(cc.typed) {
-                context.fillStyle = "#000000";
+                context.fillStyle = Color.black;
             } else {
                 if(w.active && j == charIndex) {
-                    context.beginPath();
-                    context.fillStyle = "#000000";
-                    context.rect(cx, cy-lineHeight, 
-                            charWidth, Math.round(lineHeight*heightFactor));
-                    context.fill();
-                    context.closePath();
-                    context.fillStyle = "#FFFFFF";
+                    drawCursor();
+                    context.fillStyle = Color.white;
                 } else {
                     context.fillStyle = "#999999";
                 }
@@ -102,6 +107,14 @@ function render(delta) {
                 cx += charWidth;
             }
             //console.log(cc.value+" - "+cc["typed"]);
+        }
+        function drawCursor() {
+            context.beginPath();
+            context.fillStyle = Color.black;
+            context.rect(cx, cy-lineHeight, 
+                    charWidth, Math.round(lineHeight*heightFactor));
+            context.fill();
+            context.closePath();
         }
     }
     function newLine() {
@@ -118,7 +131,7 @@ function render(delta) {
 
 }
 
-function split(article) {
+function parse(article) {
     var words = [];
     var State = {
         WHITESPACE:0, 
@@ -155,6 +168,7 @@ function split(article) {
                 word[i] = {
                     value: chars[i],
                     typed: false,
+                    timeSpent: 0,
                     toString: function() { return this.value; }
                 };
             }
@@ -187,36 +201,48 @@ function update(delta) {
     //console.log(delta);
 }
 
-render(0);
 var wordIndex = 0;
 var charIndex = 0;
 var current;
 var last = new Date;
-words[wordIndex].active = true;
+var start = null;
 
 function handleKey(e) {
+    if(!start) {
+        start = new Date();
+    }
     //alert(String.fromCharCode(e.keyCode));
     var currentWord = words[wordIndex];
     var currentChar = currentWord[charIndex];
-    console.log(e.keyCode);
-    var char;
+    //console.log(e.keyCode);
+    var input;
     if(e.keyCode == 13) { //enter
-        char = "\n";
+        input = "\n";
     } else {
-        char = String.fromCharCode(e.keyCode);
+        input = String.fromCharCode(e.keyCode);
     }
-    //console.log("got '"+char+"' - '"+currentChar+"'");
-    if(currentChar == char) {
+    //console.log("got '"+input+"' - '"+currentChar+"'");
+    if(currentChar == input) {
         currentWord[charIndex].typed = true
         if(charIndex < currentWord.length - 1) {
             charIndex++;
-        } else if(wordIndex < words.length - 1) {
+        } else {
+            //finished a word
+            var now = new Date();
+            var elapsed = now-start;
+            words[wordIndex].timeSpent = elapsed;
+            start = now;
+
             words[wordIndex].active = false;
-            wordIndex++;
-            charIndex = 0;
-            words[wordIndex].active = true;
-        } else{
-            //done
+            if(wordIndex < words.length - 1) {
+                wordIndex++;
+                charIndex = 0;
+                words[wordIndex].active = true;
+            } else{
+                //done
+                //alert("typped "+wordCount(article)+" words in "+elapsed/1000+"s!");
+                done = true;
+            }
         }
     }
     //console.log(wordIndex + " - "+charIndex);
@@ -230,3 +256,5 @@ function handleKey(e) {
 
 window.addEventListener('keypress', handleKey, false);
 
+words[wordIndex].active = true;
+render(0);
