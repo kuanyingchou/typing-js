@@ -2,23 +2,12 @@ var article = "Leadership is solving problems. The day soldiers stop bringing yo
 //var article = "Leadership is solving problems."
 
 var carriageReturnSymbol = "\u21A9";
-var canvas = document.getElementById("typingCanvas");
-var context = canvas.getContext("2d");
-var width = canvas.width;
-var height = canvas.height;
-
-adjustForRetina(canvas, context, width, height);
-
-//alert(words.join(" "));
-
 var lineHeight = 16;
-var heightFactor = 1.3;
-context.font = "20px monospace";
-var metrics = context.measureText('_');
-
-var shrink = 1;
-var charWidth = metrics.width * shrink;
 var lineDistance = lineHeight * .5;
+var cursorHeightFactor = 1.3;
+var width = 640;
+var height = 320;
+
 var padding = {
     north: 24,
     west: 4,
@@ -47,6 +36,28 @@ function init(article) {
     window.last = new Date;
     window.start = null;
     window.words[wordIndex].active = true;
+
+    window.canvas = document.getElementById("typingCanvas");
+    window.context = canvas.getContext("2d");
+    canvas.width = window.width;
+    canvas.height = window.height;
+    adjustForRetina(canvas, context, width, height);
+
+    window.context.font = "20px monospace";
+    window.metrics = context.measureText('_');
+    window.charWidth = metrics.width;
+
+/*
+    var lineCount = getLineCount();
+    canvas.height = padding.north + 
+            (lineCount - 1) * lineDistance + 
+            lineCount * lineHeight + 
+            padding.south;
+    window.height = canvas.height;
+    //context.scale(.5, .5);
+    adjustForRetina(canvas, context, width, height);
+*/
+    
     context.clearRect(0, 0, width, height);
     render(0);
 }
@@ -60,6 +71,39 @@ function init(article) {
 //    var height = bufferCanvas.height;
 //    adjustForRetina(bufferCanvas, context, width, height);
 //}
+function getLineCount() { //>>> duplicates
+    var line = 0;
+    var cx = padding.west
+    var cy;
+    for(var i = 0; i<words.length; i++) {
+        var w = words[i];
+        var wordWidth = charWidth * w.length;
+        renderWord(w);
+
+    }
+    function renderWord(w) {
+        //[ whitespaces should not start a new line
+        if((!w.join("").match(/\s/)) && 
+                (cx + wordWidth > width - padding.east)) { 
+            newLine();
+        }
+        cy = padding.north + (lineHeight+lineDistance) * line;
+
+        for(var j = 0; j<w.length; j++) {
+            var cc = w[j];
+            if(cc.value == "\n") {
+                newLine();
+            } else {
+                cx += charWidth;
+            }
+        }
+    }
+    function newLine() {
+        cx = padding.west;
+        line++;
+    }
+    return line;
+}
 
 function render() {
     //context.clearRect(0, 0, width, height);
@@ -101,13 +145,9 @@ function render() {
         for(var j = 0; j<w.length; j++) {
             var cc = w[j];
             context.clearRect(cx, cy-lineHeight, 
-                    charWidth, Math.round(lineHeight*heightFactor));
+                    charWidth, Math.round(lineHeight*cursorHeightFactor));
             if(cc.typed) {
-                if(w.timeSpent >  timeLimit) {
-                    context.fillStyle = Color.orange;
-                } else {
-                    context.fillStyle = Color.black;
-                }
+                setColor(w.timeSpent);
             } else {
                 if(w.active && j == charIndex) {
                     drawCursor();
@@ -129,11 +169,32 @@ function render() {
             context.beginPath();
             context.fillStyle = Color.black;
             context.rect(cx, cy-lineHeight, 
-                    charWidth, Math.round(lineHeight*heightFactor));
+                    charWidth, Math.round(lineHeight*cursorHeightFactor));
             context.fill();
             context.closePath();
         }
+        function setColor(timeSpent) {
+            if (timeSpent > timeLimit) { 
+                context.fillStyle = Color.orange;
+            } else {
+                context.fillStyle = Color.black;
+            }
+
+            /*
+            if(timeSpent >  timeLimit * 1.5) {
+                context.fillStyle = Color.red;
+            } else if (timeSpent > timeLimit) { 
+                context.fillStyle = Color.orange;
+            } else if (timeSpent <= timeLimit * .8 &&
+                    timeSpent > 0) { 
+                context.fillStyle = Color.green;
+            } else {
+                context.fillStyle = Color.black;
+            }
+            */
+        }
     }
+
     function newLine() {
         cx = padding.west;
         line++;
@@ -145,7 +206,6 @@ function render() {
         context.lineTo(cx, cy);
         context.stroke();
     }
-
 }
 
 function parse(article) {
@@ -202,8 +262,8 @@ function parse(article) {
 function adjustForRetina(canvas, context, width, height) {
     if (window.devicePixelRatio) {
         //alert(window.devicePixelRatio);
-        canvas.width *= window.devicePixelRatio;
-        canvas.height *= window.devicePixelRatio;
+        canvas.width = width * window.devicePixelRatio;
+        canvas.height = height * window.devicePixelRatio;
         canvas.style.width = width+"px";
         canvas.style.height = height+"px";
         context.scale(window.devicePixelRatio, window.devicePixelRatio);
