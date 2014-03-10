@@ -241,6 +241,7 @@ function parse(article) {
 
     function filter(c) {
         if(c == "’") { return "'"; }
+        if(c == "   ") { return "    "; }
         else return c;
     }
 
