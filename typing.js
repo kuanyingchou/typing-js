@@ -262,6 +262,9 @@ function parse(article) {
             }
             word["active"] = false;
             word["timeSpent"] = 0;
+            word["getDesiredTime"] = function() {
+                return this.length * (60 * 1000) / targetCPM;
+            };
             words.push(word);
             chars.length = 0;
         }
@@ -335,6 +338,7 @@ function handleKey(e) {
     //console.log(wordIndex + " - "+charIndex);
     
     render();
+    e.preventDefault();
 }
 
 function showStatistics(total) {
@@ -346,14 +350,37 @@ function showStatistics(total) {
         total += words[i].timeSpent;
     }
     */
-    console.log(total);
+    var wordsCopy = words.slice(0);
+    wordsCopy.sort(function(a, b) { 
+        var at = a.length * (60 * 1000) / targetCPM;
+        var bt = b.length * (60 * 1000) / targetCPM;
+        return b.timeSpent/bt - a.timeSpent/at;
+    });
+    var hotspots = wordsCopy.slice(0, Math.min(words.length, 10));
+console.log(join(wordsCopy, "   ", function(a) { return "'"+a.join("") +
+                    "' - "+ (a.timeSpent) / a.getDesiredTime()}));
+    //console.log(total);
     total = total / 1000;
-    alert("Typed {0} words in {1} seconds. {2} WPM. {3} CPM".format(
+    alert("Typed {0} words in {1} seconds. {2} WPM. {3} CPM. Hotspots: {4}".format(
             wc, 
             formatFloat(total, 2), 
             formatFloat(wc / total * 60, 2),
-            formatFloat(cc / total * 60, 2)
+            formatFloat(cc / total * 60, 2),
+            join(hotspots, "\n", function(a) { return "'"+a.join("") +
+                    "' - "+ formatFloat(a.timeSpent / a.getDesiredTime() * 100, 2) + "%"; })
             ));
+}
+
+function join(arr, sep, f) {
+    var res = "";
+    if(arr.length <= 0) return res;
+    res += sep;
+    if(arr.length == 1) return res;
+    for(var i = 1; i<arr.length; i++) {
+        res += sep;
+        res += f(arr[i]);
+    }
+    return res;
 }
 
 function formatFloat(f, digits) {
