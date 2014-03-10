@@ -1,5 +1,7 @@
-var article = "Leadership is solving problems. The day soldiers stop bringing you their problems is the day you have stopped leading them. They have either lost confidence that you can help or concluded you do not care. Either case is a failure of leadership.\n\nI don't believe you have to be better than everybody else. I believe you have to be better than you ever thought you could be."
-//var article = "Leadership is solving problems."
+//var defaultArticle = "Leadership is solving problems. The day soldiers stop bringing you their problems is the day you have stopped leading them. They have either lost confidence that you can help or concluded you do not care. Either case is a failure of leadership.\n\nI don't believe you have to be better than everybody else. I believe you have to be better than you ever thought you could be."
+var defaultArticle = "A fool thinks himself to be wise, but a wise man knows himself to be a fool."
+
+var article;
 
 var carriageReturnSymbol = "\u21A9";
 var lineHeight = 16;
@@ -7,6 +9,7 @@ var lineDistance = lineHeight * .5;
 var cursorHeightFactor = 1.3;
 var width = 640;
 var height = 320;
+var beginning;
 
 var padding = {
     north: 24,
@@ -29,6 +32,8 @@ var wordLength = 5;
 var targetCPM = targetWPM * wordLength;
 
 function init(article) {
+    window.done = false;
+    window.article = article;
     window.words = parse(article);
     window.wordIndex = 0;
     window.charIndex = 0;
@@ -280,11 +285,20 @@ function wordCount(string) {
     return string.split(/\s/).length;
 }
 
+function charCount(string) {
+    var words = string.split(/\s/);
+    var count = 0;
+    for(var i = 0; i<words.length; i++) {
+        count += words[i].length;
+    }
+    return count;
+}
+
 function handleKey(e) {
     if(!start) {
-        start = new Date();
+        beginning = new Date();
     }
-    console.log(String.fromCharCode(e.keyCode));
+    //console.log(String.fromCharCode(e.keyCode));
     var currentWord = words[wordIndex];
     var currentChar = currentWord[charIndex];
     //console.log(e.keyCode);
@@ -295,7 +309,7 @@ function handleKey(e) {
         input = String.fromCharCode(e.keyCode);
     }
     //console.log("got '"+input+"' - '"+currentChar+"'");
-    if(currentChar == input) {
+    if(!done && currentChar == input) {
         currentWord[charIndex].typed = true
         if(charIndex < currentWord.length - 1) {
             charIndex++;
@@ -313,7 +327,7 @@ function handleKey(e) {
                 words[wordIndex].active = true;
             } else{
                 //done
-                //alert("typped "+wordCount(article)+" words in "+elapsed/1000+"s!");
+                showStatistics(new Date() - beginning);
                 done = true;
             }
         }
@@ -323,6 +337,41 @@ function handleKey(e) {
     render();
 }
 
+function showStatistics(total) {
+    var wc = wordCount(article);
+    var cc = charCount(article);
+    /*
+    var total = 0;
+    for(var i = 0; i<words.length; i++) {
+        total += words[i].timeSpent;
+    }
+    */
+    console.log(total);
+    total = total / 1000;
+    alert("Typed {0} words in {1} seconds. {2} WPM. {3} CPM".format(
+            wc, 
+            formatFloat(total, 2), 
+            formatFloat(wc / total * 60, 2),
+            formatFloat(cc / total * 60, 2)
+            ));
+}
+
+function formatFloat(f, digits) {
+    var m = Math.pow(10, digits);
+    return Math.round(f*m)/m; 
+}
+
+//[ from http://stackoverflow.com/questions/1038746/equivalent-of-string-format-in-jquery
+String.prototype.format = String.prototype.f = function() {
+    var s = this,
+        i = arguments.length;
+
+    while (i--) {
+        s = s.replace(new RegExp('\\{' + i + '\\}', 'gm'), arguments[i]);
+    }
+    return s;
+};
+
 document.body.onpaste = function(e) {
     //alert(e.clipboardData.getData("Text"));
     init(e.clipboardData.getData("Text"));
@@ -331,4 +380,4 @@ document.body.onpaste = function(e) {
 
 window.addEventListener('keypress', handleKey, false);
 
-init(article);
+init(defaultArticle);
