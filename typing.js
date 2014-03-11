@@ -1,7 +1,6 @@
 var typing = (function() {
    "use strict";
 
-   //var _defaultArticle = 'Leadership is solving problems. The day soldiers stop bringing you their problems is the day you have stopped leading them. They have either lost confidence that you can help or concluded you do not care. Either case is a failure of leadership.\n\nI don't believe you have to be better than everybody else. I believe you have to be better than you ever thought you could be.'
    var _defaultArticle = 
       'A fool thinks himself to be wise, '+
       'but a wise man knows himself to be a fool.'
@@ -25,7 +24,7 @@ var typing = (function() {
    var _cursorHeightFactor = 1.3;
 
    var _width = 640,
-         _height = 320;
+       _height = 320;
 
    var _beginning;
 
@@ -83,16 +82,7 @@ var typing = (function() {
       render(0);
    }
 
-   //function init() {
-   //    var bufferCanvas = document.createElement('canvas');
-   //    bufferCanvas.width = width;
-   //    bufferCanvas.height = height;
-   //    var bufferContext = bufferCanvas.getContext('2d');
-   //    var width = bufferCanvas.width;
-   //    var height = bufferCanvas.height;
-   //    adjustForRetina(bufferCanvas, context, width, height);
-   //}
-   function getLineCount() { //>>> duplicates
+   function getLineCount() { //FIXME: duplicates
       var line = 0;
       var cx = padding.west
       var cy;
