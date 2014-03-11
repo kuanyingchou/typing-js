@@ -1,9 +1,9 @@
 var typing = (function() {
-   "use strict";
+   'use strict';
 
    var _defaultArticle = 
-      'A fool thinks himself to be wise, '+
-      'but a wise man knows himself to be a fool.'
+      'A fool thinks himself to be wise, ' +
+      'but a wise man knows himself to be a fool.';
    
    var Color = {
       red: '#FF0000',
@@ -20,7 +20,7 @@ var typing = (function() {
    var _carriageReturnSymbol = '\u21A9';
 
    var _lineHeight = 16,
-         _lineDistance = _lineHeight * .5;
+       _lineDistance = _lineHeight * 0.5;
    var _cursorHeightFactor = 1.3;
 
    var _width = 640,
@@ -33,7 +33,7 @@ var typing = (function() {
       west: 4,
       east: 4,
       south: 24
-   }
+   };
    var _done = false;
    var _targetWPM = 70,
        _wordLength = 5,
@@ -55,7 +55,6 @@ var typing = (function() {
       _charIndex = 0;
       _last = new Date;
       _start = null;
-      _words[_wordIndex].active = true;
 
       _canvas = document.getElementById('typingCanvas');
       _context = _canvas.getContext('2d');
@@ -124,7 +123,6 @@ var typing = (function() {
       for(var i = 0; i<_words.length; i++) {
          var w = _words[i];
          var wordWidth = _charWidth * w.length;
-         //console.log(w.active?w.join(''):'');
          renderWord(w);
 
       }
@@ -137,32 +135,25 @@ var typing = (function() {
          }
          cy = _padding.north + (_lineHeight+_lineDistance) * line;
 
-   /*
-         if(w.active) {
-            context.strokeStyle = '#FF0000';
-            //context.moveTo(cx, cy);
-            //context.lineTo(cx+wordWidth, cy);
-            context.rect(cx, cy-lineHeight, wordWidth, lineHeight);
-            context.stroke();
-         } else {
-            context.clearRect(cx, cy-lineHeight, wordWidth, lineHeight);
-            //context.strokeStyle = '#CCCCCC';
-            //context.rect(cx, cy-lineHeight, wordWidth, lineHeight);
-            //context.stroke();
-         }
-   */
-
          var timeLimit = w.length * (60 * 1000) / _targetCPM;
+         var wordColor = fromTimeToColor(w.timeSpent);
+
          for(var j = 0; j<w.length; j++) {
             var cc = w[j];
+            var isCursor = false;
             _context.clearRect(cx, cy-_lineHeight, 
                   _charWidth, Math.round(_lineHeight*_cursorHeightFactor));
-            if(cc.typed) {
-               setColor(w.timeSpent);
+            if(i === _wordIndex && j === _charIndex) {
+               isCursor = true;
+               drawCursor(Color.black);
+               _context.fillStyle = Color.white;
             } else {
-               if(w.active && j == _charIndex) {
-                  drawCursor();
-                  _context.fillStyle = Color.white;
+               if(cc.typed) {
+                  if(cc.typed == cc.value) {
+                     _context.fillStyle = wordColor;
+                  } else {
+                     _context.fillStyle = Color.red;;
+                  }
                } else {
                   _context.fillStyle = '#999999';
                }
@@ -171,38 +162,34 @@ var typing = (function() {
                _context.fillText(_carriageReturnSymbol, cx, cy);
                newLine();
             } else {
-               _context.fillText(cc.value, cx, cy);
+               if(cc.typed && cc.typed !== cc.value) {
+                  _context.fillStyle = Color.red;
+                  if(cc.typed === ' ') {
+                     drawCursor(Color.red);
+                  } else {
+                     _context.fillText(cc.typed, cx, cy);
+                  }
+               } else {
+                  _context.fillText(cc.value, cx, cy);
+               }
                cx += _charWidth;
             }
             //console.log(cc.value+' - '+cc['typed']);
          }
-         function drawCursor() {
+         function drawCursor(color) {
             _context.beginPath();
-            _context.fillStyle = Color.black;
+            _context.fillStyle = color;
             _context.rect(cx, cy-_lineHeight, 
                   _charWidth, Math.round(_lineHeight*_cursorHeightFactor));
             _context.fill();
             _context.closePath();
          }
-         function setColor(timeSpent) {
+         function fromTimeToColor(timeSpent) {
             if (timeSpent > timeLimit) { 
-               _context.fillStyle = Color.orange;
+               return Color.orange;
             } else {
-               _context.fillStyle = Color.black;
+               return Color.black;
             }
-
-            /*
-            if(timeSpent > timeLimit * 1.5) {
-               context.fillStyle = Color.red;
-            } else if (timeSpent > timeLimit) { 
-               context.fillStyle = Color.orange;
-            } else if (timeSpent <= timeLimit * .8 &&
-                  timeSpent > 0) { 
-               context.fillStyle = Color.green;
-            } else {
-               context.fillStyle = Color.black;
-            }
-            */
          }
       }
 
@@ -266,10 +253,16 @@ var typing = (function() {
                   toString: function() { return this.value; }
                };
             }
-            w.active = false;
             w.timeSpent = 0;
             w.getDesiredTime = function() {
                return this.length * (60 * 1000) / _targetCPM;
+            };
+            w.isCorrect = function () {
+               for(var ci = 0; ci < this.length; ci++) {
+                  if(!this[ci].typed) return false;
+                  if(this[ci].typed !== this[ci].value) return false;
+                  else return true;
+               }
             };
             words.push(w);
             chars.length = 0;
@@ -311,10 +304,30 @@ var typing = (function() {
       }
    }
 
-   var _start = 0;
    function handleKey(e) {
-      if(!_start) {
-         _beginning = new Date();
+      if(!_done) {
+         if(e.keyCode === 8) { //backspace
+            console.log(e.keyCode);
+            if(_charIndex > 0) {
+               _charIndex--;
+            } else {
+               if(_wordIndex > 0) {
+                  _wordIndex--;
+                  _charIndex = _words[_wordIndex].length - 1;
+               }
+            }
+            _words[_wordIndex][_charIndex].typed = '';
+            render();
+            e.preventDefault();
+         }
+      }
+   }
+
+   function handleCharacter(e) {
+      var now = new Date();
+
+      if(!_beginning) {
+         _beginning = now;
       }
       //console.log(String.fromCharCode(e.keyCode));
       var currentWord = _words[_wordIndex];
@@ -325,29 +338,24 @@ var typing = (function() {
 
       if(!_done) {
          if(!_start) {
-            _start = new Date();
+            _start = now;
          }
-         if(currentChar == input) {
-            currentWord[_charIndex].typed = true
-            if(_charIndex < currentWord.length - 1) {
-               _charIndex++;
-            } else {
-               //finished a word
-               var now = new Date();
-               var elapsed = now-_start;
-               _words[_wordIndex].timeSpent = elapsed;
-               _start = now;
+         currentChar.typed = input;
+         if(_charIndex < currentWord.length - 1) {
+            _charIndex++;
+         } else {
+            //finished a word
+            var elapsed = now - _start;
+            _words[_wordIndex].timeSpent = elapsed;
+            _start = now;
 
-               _words[_wordIndex].active = false;
-               if(_wordIndex < _words.length - 1) {
-                  _wordIndex++;
-                  _charIndex = 0;
-                  _words[_wordIndex].active = true;
-               } else{
-                  //done
-                  showStatistics(new Date() - _beginning);
-                  _done = true;
-               }
+            if(_wordIndex < _words.length - 1) {
+               _wordIndex++;
+               _charIndex = 0;
+            } else{
+               //done
+               showStatistics(new Date() - _beginning);
+               _done = true;
             }
          }
       }
@@ -423,7 +431,8 @@ var typing = (function() {
       e.preventDefault();
    }
 
-   window.addEventListener('keypress', handleKey, false);
+   window.addEventListener('keydown', handleKey, false);
+   window.addEventListener('keypress', handleCharacter, false);
 
    init(_defaultArticle);
 
