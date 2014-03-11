@@ -1,24 +1,8 @@
 var typing = (function() {
-    //var defaultArticle = 'Leadership is solving problems. The day soldiers stop bringing you their problems is the day you have stopped leading them. They have either lost confidence that you can help or concluded you do not care. Either case is a failure of leadership.\n\nI don't believe you have to be better than everybody else. I believe you have to be better than you ever thought you could be.'
-    var defaultArticle = 'A fool thinks himself to be wise, but a wise man knows himself to be a fool.'
+    "use strict";
 
-    var article = '';
-
-    var carriageReturnSymbol = '\u21A9';
-    var lineHeight = 16;
-    var lineDistance = lineHeight * .5;
-    var cursorHeightFactor = 1.3;
-    var width = 640;
-    var height = 320;
-    var beginning;
-
-    var padding = {
-        north: 24,
-        west: 4,
-        east: 4,
-        south: 24
-    }
-    var done = false;
+    //var _defaultArticle = 'Leadership is solving problems. The day soldiers stop bringing you their problems is the day you have stopped leading them. They have either lost confidence that you can help or concluded you do not care. Either case is a failure of leadership.\n\nI don't believe you have to be better than everybody else. I believe you have to be better than you ever thought you could be.'
+    var _defaultArticle = 'A fool thinks himself to be wise, but a wise man knows himself to be a fool.'
     var Color = {
         red: '#FF0000',
         green: '#00FF00',
@@ -28,30 +12,58 @@ var typing = (function() {
         white: '#FFFFFF',
         orange: 'FFBF00'
     };
-    var targetWPM = 70;
-    var wordLength = 5;
-    var targetCPM = targetWPM * wordLength;
+
+    var _article = '';
+
+    var _carriageReturnSymbol = '\u21A9';
+
+    var _lineHeight = 16,
+        _lineDistance = _lineHeight * .5;
+    var _cursorHeightFactor = 1.3;
+
+    var _width = 640,
+        _height = 320;
+
+    var _beginning;
+
+    var _padding = {
+        north: 24,
+        west: 4,
+        east: 4,
+        south: 24
+    }
+    var _done = false;
+    var _targetWPM = 70,
+        _wordLength = 5,
+        _targetCPM = _targetWPM * _wordLength;
+    var _words = [],
+        _wordIndex,
+        _charIndex;
+    var _last;
+    var _start;
+    var _canvas, 
+        _context;
+    var _charWidth;
 
     function init(article) {
-        window.done = false;
-        window.article = article;
-        window.words = parse(article);
-        window.wordIndex = 0;
-        window.charIndex = 0;
-        window.current;
-        window.last = new Date;
-        window.start = null;
-        window.words[wordIndex].active = true;
+        _done = false;
+        _article = article;
+        _words = parse(article);
+        _wordIndex = 0;
+        _charIndex = 0;
+        _last = new Date;
+        _start = null;
+        _words[_wordIndex].active = true;
 
-        window.canvas = document.getElementById('typingCanvas');
-        window.context = canvas.getContext('2d');
-        canvas.width = window.width;
-        canvas.height = window.height;
-        adjustForRetina(canvas, context, width, height);
+        _canvas = document.getElementById('typingCanvas');
+        _context = _canvas.getContext('2d');
+        _canvas.width = _width;
+        _canvas.height = _height;
+        adjustForRetina(_canvas, _context, _width, _height);
 
-        window.context.font = '20px monospace';
-        window.metrics = context.measureText('_');
-        window.charWidth = metrics.width;
+        _context.font = '20px monospace';
+        var metrics = _context.measureText('_');
+        _charWidth = metrics.width;
 
     /*
         var lineCount = getLineCount();
@@ -64,7 +76,7 @@ var typing = (function() {
         adjustForRetina(canvas, context, width, height);
     */
         
-        context.clearRect(0, 0, width, height);
+        _context.clearRect(0, 0, _width, _height);
         render(0);
     }
 
@@ -114,11 +126,11 @@ var typing = (function() {
     function render() {
         //context.clearRect(0, 0, width, height);
         var line = 0;
-        var cx = padding.west
+        var cx = _padding.west
         var cy;
-        for(var i = 0; i<words.length; i++) {
-            var w = words[i];
-            var wordWidth = charWidth * w.length;
+        for(var i = 0; i<_words.length; i++) {
+            var w = _words[i];
+            var wordWidth = _charWidth * w.length;
             //console.log(w.active?w.join(''):'');
             renderWord(w);
 
@@ -127,10 +139,10 @@ var typing = (function() {
         function renderWord(w) {
             //[ whitespaces should not start a new line
             if((!w.join('').match(/\s/)) && 
-                    (cx + wordWidth > width - padding.east)) { 
+                    (cx + wordWidth > _width - _padding.east)) { 
                 newLine();
             }
-            cy = padding.north + (lineHeight+lineDistance) * line;
+            cy = _padding.north + (_lineHeight+_lineDistance) * line;
 
     /*
             if(w.active) {
@@ -147,43 +159,43 @@ var typing = (function() {
             }
     */
 
-            var timeLimit = w.length * (60 * 1000) / targetCPM;
+            var timeLimit = w.length * (60 * 1000) / _targetCPM;
             for(var j = 0; j<w.length; j++) {
                 var cc = w[j];
-                context.clearRect(cx, cy-lineHeight, 
-                        charWidth, Math.round(lineHeight*cursorHeightFactor));
+                _context.clearRect(cx, cy-_lineHeight, 
+                        _charWidth, Math.round(_lineHeight*_cursorHeightFactor));
                 if(cc.typed) {
                     setColor(w.timeSpent);
                 } else {
-                    if(w.active && j == charIndex) {
+                    if(w.active && j == _charIndex) {
                         drawCursor();
-                        context.fillStyle = Color.white;
+                        _context.fillStyle = Color.white;
                     } else {
-                        context.fillStyle = '#999999';
+                        _context.fillStyle = '#999999';
                     }
                 }
                 if(cc.value == '\n') {
-                    context.fillText(carriageReturnSymbol, cx, cy);
+                    _context.fillText(_carriageReturnSymbol, cx, cy);
                     newLine();
                 } else {
-                    context.fillText(cc.value, cx, cy);
-                    cx += charWidth;
+                    _context.fillText(cc.value, cx, cy);
+                    cx += _charWidth;
                 }
                 //console.log(cc.value+' - '+cc['typed']);
             }
             function drawCursor() {
-                context.beginPath();
-                context.fillStyle = Color.black;
-                context.rect(cx, cy-lineHeight, 
-                        charWidth, Math.round(lineHeight*cursorHeightFactor));
-                context.fill();
-                context.closePath();
+                _context.beginPath();
+                _context.fillStyle = Color.black;
+                _context.rect(cx, cy-_lineHeight, 
+                        _charWidth, Math.round(_lineHeight*_cursorHeightFactor));
+                _context.fill();
+                _context.closePath();
             }
             function setColor(timeSpent) {
                 if (timeSpent > timeLimit) { 
-                    context.fillStyle = Color.orange;
+                    _context.fillStyle = Color.orange;
                 } else {
-                    context.fillStyle = Color.black;
+                    _context.fillStyle = Color.black;
                 }
 
                 /*
@@ -202,7 +214,7 @@ var typing = (function() {
         }
 
         function newLine() {
-            cx = padding.west;
+            cx = _padding.west;
             line++;
         }
         function drawCross(x, y, w, h) {
@@ -253,20 +265,20 @@ var typing = (function() {
 
         function flush() {
             if(chars.length > 0) {
-                var word = [];
+                var w = [];
                 for(var i = 0; i<chars.length; i++) {
-                    word[i] = {
+                    w[i] = {
                         value: chars[i],
                         typed: false,
                         toString: function() { return this.value; }
                     };
                 }
-                word['active'] = false;
-                word['timeSpent'] = 0;
-                word['getDesiredTime'] = function() {
-                    return this.length * (60 * 1000) / targetCPM;
+                w.active = false;
+                w.timeSpent = 0;
+                w.getDesiredTime = function() {
+                    return this.length * (60 * 1000) / _targetCPM;
                 };
-                words.push(word);
+                words.push(w);
                 chars.length = 0;
             }
         }
@@ -298,41 +310,51 @@ var typing = (function() {
         return count;
     }
 
+    function fromKeycode(code) {
+        if(code == 13) { //enter
+            return '\n';
+        } else {
+            return String.fromCharCode(code);
+        }
+    }
+
+    var _start = 0;
     function handleKey(e) {
-        if(!start) {
-            beginning = new Date();
+        if(!_start) {
+            _beginning = new Date();
         }
         //console.log(String.fromCharCode(e.keyCode));
-        var currentWord = words[wordIndex];
-        var currentChar = currentWord[charIndex];
+        var currentWord = _words[_wordIndex];
+        var currentChar = currentWord[_charIndex];
         //console.log(e.keyCode);
-        var input;
-        if(e.keyCode == 13) { //enter
-            input = '\n';
-        } else {
-            input = String.fromCharCode(e.keyCode);
-        }
+        var input = fromKeycode(e.keyCode);
         //console.log('got ''+input+'' - ''+currentChar+''');
-        if(!done && currentChar == input) {
-            currentWord[charIndex].typed = true
-            if(charIndex < currentWord.length - 1) {
-                charIndex++;
-            } else {
-                //finished a word
-                var now = new Date();
-                var elapsed = now-start;
-                words[wordIndex].timeSpent = elapsed;
-                start = now;
 
-                words[wordIndex].active = false;
-                if(wordIndex < words.length - 1) {
-                    wordIndex++;
-                    charIndex = 0;
-                    words[wordIndex].active = true;
-                } else{
-                    //done
-                    showStatistics(new Date() - beginning);
-                    done = true;
+        if(!_done) {
+            if(!_start) {
+                _start = new Date();
+            }
+            if(currentChar == input) {
+                currentWord[_charIndex].typed = true
+                if(_charIndex < currentWord.length - 1) {
+                    _charIndex++;
+                } else {
+                    //finished a word
+                    var now = new Date();
+                    var elapsed = now-_start;
+                    _words[_wordIndex].timeSpent = elapsed;
+                    _start = now;
+
+                    _words[_wordIndex].active = false;
+                    if(_wordIndex < _words.length - 1) {
+                        _wordIndex++;
+                        _charIndex = 0;
+                        _words[_wordIndex].active = true;
+                    } else{
+                        //done
+                        showStatistics(new Date() - _beginning);
+                        _done = true;
+                    }
                 }
             }
         }
@@ -343,23 +365,25 @@ var typing = (function() {
     }
 
     function showStatistics(total) {
-        var wc = wordCount(article);
-        var cc = charCount(article);
+        var wc = wordCount(_article);
+        var cc = charCount(_article);
         /*
         var total = 0;
         for(var i = 0; i<words.length; i++) {
             total += words[i].timeSpent;
         }
         */
-        var wordsCopy = words.slice(0);
+        var wordsCopy = _words.slice(0);
         wordsCopy.sort(function(a, b) { 
-            var at = a.length * (60 * 1000) / targetCPM;
-            var bt = b.length * (60 * 1000) / targetCPM;
+            var at = a.length * (60 * 1000) / _targetCPM;
+            var bt = b.length * (60 * 1000) / _targetCPM;
             return b.timeSpent/bt - a.timeSpent/at;
         });
-        var hotspots = wordsCopy.slice(0, Math.min(words.length, 10));
-    console.log(join(wordsCopy, '   ', function(a) { return "'"+a.join('') +
-                        "' - "+ (a.timeSpent) / a.getDesiredTime()}));
+        var hotspots = wordsCopy.slice(0, Math.min(_words.length, 10));
+        console.log(join(_words, '   ', 
+                function(a) { return "'"+a.join('') +
+                "' - "+ formatFloat(a.timeSpent / a.getDesiredTime(), 2)
+                }));
         //console.log(total);
         total = total / 1000;
         alert('Typed {0} words in {1} seconds. {2} WPM. {3} CPM. Hotspots: {4}'.format(
@@ -408,6 +432,6 @@ var typing = (function() {
 
     window.addEventListener('keypress', handleKey, false);
 
-    init(defaultArticle);
+    init(_defaultArticle);
 
 })();
