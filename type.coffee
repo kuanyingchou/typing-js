@@ -1,8 +1,7 @@
-type = () -> 
-   console.log('hi')
-   _defaultArticle = 
-          'A fool thinks himself to be wise, ' +
-          'but a wise man knows himself to be a fool.'
+type = (article) -> 
+   _defaultArticle = article
+          #'A fool thinks himself to be wise, ' +
+          #'but a wise man knows himself to be a fool.'
    
    Color = {
       red: '#FF0000',
@@ -18,8 +17,6 @@ type = () ->
 
    _carriageReturnSymbol = '\u21A9'
 
-   _lineHeight = 16
-   _lineDistance = _lineHeight * 0.5
    _cursorHeightFactor = 1.3
 
    _width = 640
@@ -28,10 +25,10 @@ type = () ->
    _beginning = 0
 
    _padding = {
-      north: 24,
+      north: 4,
       west: 4,
       east: 4,
-      south: 24
+      south: 4
    }
    _done = false
    _targetWPM = 70
@@ -45,79 +42,103 @@ type = () ->
    _canvas = null
    _context = null
    _charWidth = 0
+   _debug = true
+   _fontSize = 40
+   _lineHeight = _fontSize
+   _lineDistance = _lineHeight * 0.5
+   _lineCount = 0
 
    init = (article) ->
       _done = false
       _article = article
-      _words = parse(article)
       _wordIndex = 0
       _charIndex = 0
       _last = new Date
       _start = null
-
+      
       _canvas = document.getElementById('typingCanvas')
       _context = _canvas.getContext('2d')
       _canvas.width = _width
       _canvas.height = _height
       adjustForRetina(_canvas, _context, _width, _height)
 
-      _context.font = '20px monospace'
+      _context.font = _fontSize + 'px monospace'
       metrics = _context.measureText('_')
       _charWidth = metrics.width
 
-      _context.clearRect(0, 0, _width, _height)
+      _lineCount = getLineCount(
+         _height-_padding.north-_padding.south,
+         _lineHeight,
+         _lineDistance)
+
+      _words = parse(article)
+
       render(0)
 
-   getLineCount = () -> #FIXME: duplicates
-      line = 0
-      cx = padding.west
-      cy = 0
+#   getLineCount = () -> #FIXME: duplicates
+#      line = 0
+#      cx = padding.west
+#      cy = 0
+#
+#      for w in words
+#         wordWidth = charWidth * w.length
+#         renderWord(w)
+#
+#      renderWord = (w) ->
+#         #[ whitespaces should not start a new line
+#
+#         if((!w.join('').match(/\s/)) && 
+#               (cx + wordWidth > width - padding.east))  
+#            newLine()
+#         cy = padding.north + (_lineHeight+lineDistance) * line
+#
+#         for cc in w
+#            if(cc.value == '\n') 
+#               newLine()
+#            else
+#               cx += charWidth
+#      newLine = () ->
+#         cx = padding.west
+#         line++
+#      return line
 
-      for w in words
-         wordWidth = charWidth * w.length
-         renderWord(w)
+   getLineCount = (height, lineHeight, lineDistance) -> 
+      count = Math.floor (height - lineHeight) / (lineHeight + lineDistance)
+      return count + 1
 
-      renderWord = (w) ->
-         #[ whitespaces should not start a new line
-
-         if((!w.join('').match(/\s/)) && 
-               (cx + wordWidth > width - padding.east))  
-            newLine()
-         cy = padding.north + (lineHeight+lineDistance) * line
-
-         for cc in w
-            if(cc.value == '\n') 
-               newLine()
-            else
-               cx += charWidth
-      newLine = () ->
-         cx = padding.west
-         line++
-      return line
+   getCharsPerLine = () -> 
+      count = Math.floor((_width - _padding.east - _padding.west) / _charWidth)
+      # console.log count
+      return count
 
    render = () ->
-      # context.clearRect(0, 0, width, height)
+      _context.clearRect(0, 0, _width, _height)
+      if _debug 
+         _context.strokeStyle = Color.black
+         _context.strokeRect(0, 0, _width, _height)
+         # _context.strokeRect(
+         #       _padding.west, 
+         #       _padding.north, 
+         #       _width - _padding.west - _padding.east, 
+         #       _height - _padding.north - _padding.south)
       line = 0
       cx = _padding.west
       cy = 0
       newLine = () -> 
          cx = _padding.west
          line++
+         
       
       drawCross = (x, y, w, h) ->
-         context.moveTo(x, cy-h)
-         context.lineTo(x+w, cy)
-         context.moveTo(x+w, cy-h)
-         context.lineTo(cx, cy)
-         context.stroke()
+         _context.strokeStyle = Color.black
+         _context.moveTo(x, y-h)
+         _context.lineTo(x+w, y)
+         _context.moveTo(x+w, y-h)
+         _context.lineTo(x, y)
 
       renderWord = (w) ->
-         #[ whitespaces should not start a new line
-         if((!w.join('').match(/\s/)) && 
-               (cx + wordWidth > _width - _padding.east)) 
-            newLine()
          
-         cy = _padding.north + (_lineHeight+_lineDistance) * line
+         cy = _padding.north + (_lineHeight+_lineDistance) * line + _lineHeight
 
          drawCursor = (color) ->
             _context.beginPath()
@@ -142,6 +163,8 @@ type = () ->
             isCursor = false
             _context.clearRect(cx, cy-_lineHeight, 
                   _charWidth, Math.round(_lineHeight*_cursorHeightFactor))
+            if _debug 
+               _context.strokeRect(cx, cy-_lineHeight, _charWidth, _lineHeight)
             if i is _wordIndex and j is _charIndex
                isCursor = true
                drawCursor(Color.black)
@@ -167,14 +190,22 @@ type = () ->
                else 
                   _context.fillText(cc.value, cx, cy)
                cx += _charWidth
+
             # console.log(cc.value+' - '+cc['typed'])
          
       # (console.log c for c in w) for w in _words
       for i in [0.._words.length-1]
          w = _words[i]
-         console.log w.join('') if w
+         # console.log w.join('') if w
          wordWidth = _charWidth * w.length
+
+         #[ whitespaces should not start a new line
+         if (cx + wordWidth > _width - _padding.east) 
+            # (!w.join('').match(/\s/)) && 
+            newLine()
+         if line >= _lineCount then break
          renderWord (w)
+      _context.stroke()
 
 
 
@@ -211,6 +242,8 @@ type = () ->
          if c == "’" then "'" 
          else if c == '\t' then '    ' 
          else return c
+
+      # length = if article.length >= _limit then _limit else article.length
 
       for i in [0..article.length-1]
          c = article.charAt(i)
@@ -292,17 +325,19 @@ type = () ->
             _charIndex++
          else 
             # finished a word
-            elapsed = now - _start
-            _words[_wordIndex].timeSpent = elapsed
-            _start = now
+            if _words[_wordIndex].isCorrect()
+               currentChar.typed = input
+               elapsed = now - _start
+               _words[_wordIndex].timeSpent = elapsed
+               _start = now
 
-            if(_wordIndex < _words.length - 1) 
-               _wordIndex++
-               _charIndex = 0
-            else
-               # done
-               showStatistics(new Date() - _beginning)
-               _done = true
+               if(_wordIndex < _words.length - 1) 
+                  _wordIndex++
+                  _charIndex = 0
+               else
+                  # done
+                  showStatistics(new Date() - _beginning)
+                  _done = true
       # console.log(wordIndex + ' - '+charIndex)
       
       render()
@@ -366,4 +401,4 @@ type = () ->
 
    init(_defaultArticle)
 
-type()
+type(window.articles[0])
